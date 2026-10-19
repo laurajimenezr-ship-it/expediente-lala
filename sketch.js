@@ -138,7 +138,7 @@ function draw() {
   fill(G.dim); textSize(16); text(TITULO, 80, 84);
   fill(G.mid); textSize(18); text('> FORMATO_ÚNICO_DE_INVENTARIO_DOCUMENTAL', 80, 114);
 
-  fill(G.bright); textSize(60); textStyle(BOLD);
+  fill(G.bright); textSize(48); textStyle(BOLD);
   drawingContext.shadowColor = G.bright; drawingContext.shadowBlur = 18;
   text('EXPEDIENTE: JIMÉNEZ RONCANCIO LAURA D.', 76, 186);
   drawingContext.shadowBlur = 0; textStyle(NORMAL);
