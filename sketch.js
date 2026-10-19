@@ -140,7 +140,7 @@ function draw() {
 
   fill(G.bright); textSize(60); textStyle(BOLD);
   drawingContext.shadowColor = G.bright; drawingContext.shadowBlur = 18;
-  text('EXPEDIENTE: LALA', 76, 186);
+  text('EXPEDIENTE: JIMÉNEZ RONCANCIO LAURA D.', 76, 186);
   drawingContext.shadowBlur = 0; textStyle(NORMAL);
 
   // Encabezado que se escribe solo
