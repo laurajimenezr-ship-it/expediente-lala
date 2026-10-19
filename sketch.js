@@ -15,7 +15,7 @@
 // Cada fila: [código, serie / asunto, fechas, observaciones]
 // La ÚLTIMA fila es la vacía: al aparecer, la lluvia se detiene.
 const ROWS = [
-  ['LJR-01', 'Identidad · Nombre de uso: Lala', '—', 'Dicho por ella'],
+  ['LJR-01', 'Identidad · Nombre de uso: Laura D. Jiménez R.', '—', 'Dicho por ella'],
   ['LJR-02', 'Formación · Historia, énfasis en Museología y Patrimonio', '2018', 'Dicho por ella'],
   ['LJR-03', 'Formación · Maestría en Patrimonio Cultural Mueble', '2018–2023', 'Dicho por ella'],
   ['LJR-04', 'Formación · Maestría en Humanidades Digitales', '2026 – abierta', 'Expediente abierto'],
