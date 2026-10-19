@@ -1,18 +1,19 @@
 // =====================================================
-//  EXPEDIENTE: LALA  ·  adentro afuera · Interludio: Martes
+//  EXPEDIENTE: LALA  ·  versión matriz
+//  adentro afuera · Interludio: Martes
 // =====================================================
 //  CONTROLES
 //  Espacio / →  agregar la siguiente fila (también clic)
 //  ←            quitar la última fila
 //  A            automático (una fila cada 3 s)
-//  C            cámara: marcador · verde (chroma) · vacío
+//  C            cámara: marcador · magenta (chroma) · vacío
 //  R            reiniciar
 //  F            pantalla completa
 // =====================================================
 
 // ---------- 1. EDITA AQUÍ TU EXPEDIENTE ----------
 // Cada fila: [código, serie / asunto, fechas, observaciones]
-// La ÚLTIMA fila siempre se dibuja oscura (la fila vacía).
+// La ÚLTIMA fila es la vacía: al aparecer, la lluvia se detiene.
 const ROWS = [
   ['LJR-01', 'Identidad · Nombre de uso: Lala', '—', 'Dicho por ella'],
   ['LJR-02', 'Formación · Historia, énfasis en Museología y Patrimonio', '2018', 'Dicho por ella'],
@@ -30,35 +31,47 @@ const HEADER = [
   ['Objeto', 'Transferencia de una identidad']
 ];
 
-const TITULO   = 'Adentro-afuera.- Interludio: Martes · Disponibilidad';
-const HORA     = '17:52';
+const TITULO   = 'Adentro-afuera.- Interludio: Martes · Disponibilidad · 17:52';
 const QUOTE_A  = '"Llevo años decidiendo qué se conserva de otros.';
 const QUOTE_B  = 'Hoy alguien hizo el inventario de mí."';
-const MARQUEE  = '[…] ¿esta soy yo? · ¿quién custodia este fondo? · ¿quién decide qué se conserva? ';
+const MARQUEE  = '¿esta soy yo? · ¿quién custodia este fondo? · ¿quién decide qué se conserva? · ';
 
 // ---------- 2. RITMO ----------
-const SPEED   = 0.05;   // caracteres por milisegundo (más alto = escribe más rápido)
-const AUTO_MS = 3000;   // milisegundos entre filas en modo automático
+const SPEED      = 0.05;  // letras por milisegundo al escribir las filas
+const AUTO_MS    = 3000;  // milisegundos entre filas en modo automático
+const RAIN_SPEED = 0.5;   // velocidad de la lluvia (0.2 lenta · 1 rápida)
 
 // ---------- No hace falta tocar nada de aquí para abajo ----------
-const W = 1920, H = 1080;
-const COL = {
-  teal: '#035B66', tealDk: '#02414A', yellow: '#F2C230', paper: '#F4F1EA',
-  ink: '#1A1A1A', rule: '#CFC8B8', panel: '#1C1C1C', cam: '#E9D98A', camInk: '#6B5A12',
-  black: '#000000', white: '#FFFFFF', label: '#6A6A6A'
+const W = 1920, H = 1080, FS = 24;
+const G = {
+  bright: '#33FF77', mid: '#1FC25A', dim: '#0E7A36', faint: '#073D1C',
+  white: '#E6FFEC', black: '#000000'
 };
+const FONT = 'IBM Plex Mono';
 
-let starts = [];
-let headerStart = 0;
+let rain, cols = [], pool = '';
+let rainLevel = 1, rainTarget = 1;
+let starts = [], headerStart = 0;
 let auto = false, lastAuto = 0;
-let camMode = 0;
-let marqueeX = 0;
-let scaleF = 1;
+let camMode = 0, marqueeX = 0, scaleF = 1;
 
 function setup() {
   const cnv = createCanvas(10, 10);
   cnv.mousePressed(nextRow);
   fitCanvas();
+
+  rain = createGraphics(W, H);
+  rain.pixelDensity(1);
+  rain.background(0);
+  rain.textFont(FONT);
+  rain.textSize(FS);
+  rain.textAlign(CENTER, TOP);
+  rain.noStroke();
+
+  pool = (ROWS.flat().join('') + HEADER.flat().join('') + '0123456789§№LJR').replace(/\s/g, '');
+  for (let i = 0; i < Math.ceil(W / FS); i++) {
+    cols.push({ x: i * FS + FS / 2, y: -FS * floor(random(0, 45)), v: random(0.35, 1), ch: randChar() });
+  }
   headerStart = millis();
 }
 
@@ -68,127 +81,149 @@ function fitCanvas() {
 }
 function windowResized() { fitCanvas(); }
 
+function randChar() { return pool.charAt(floor(random(pool.length))) || '0'; }
+function typed(str, chars) { return str.slice(0, Math.max(0, Math.min(str.length, chars))); }
+
 function nextRow() {
   if (starts.length < ROWS.length) { starts.push(millis()); lastAuto = millis(); }
 }
-function prevRow() { starts.pop(); }
-function resetAll() { starts = []; headerStart = millis(); auto = false; marqueeX = 0; }
+function prevRow() { starts.pop(); rainTarget = 1; }
+function resetAll() {
+  starts = []; headerStart = millis(); auto = false; marqueeX = 0;
+  rainTarget = 1; rainLevel = 1;
+}
 
-function typed(str, chars) { return str.slice(0, Math.max(0, Math.min(str.length, chars))); }
+// ---------- Lluvia ----------
+function rainStep() {
+  rainLevel = lerp(rainLevel, rainTarget, 0.03);
+  rain.fill(0, 0, 0, 30);
+  rain.rect(0, 0, W, H);
+  if (rainLevel < 0.03) return;
+  for (const c of cols) {
+    c.acc = (c.acc || 0) + c.v * RAIN_SPEED * rainLevel;
+    if (c.acc < 1) continue;
+    c.acc -= 1;
+    rain.fill(G.mid);
+    rain.text(c.ch, c.x, c.y);
+    c.y += FS;
+    c.ch = randChar();
+    rain.fill(G.white);
+    rain.text(c.ch, c.x, c.y);
+    if (c.y > H && random() < 0.08) c.y = -FS * floor(random(1, 25));
+  }
+}
 
+// ---------- Dibujo ----------
 function draw() {
   if (auto && millis() - lastAuto > AUTO_MS) nextRow();
   if (auto && starts.length >= ROWS.length) auto = false;
 
+  const complete = starts.length === ROWS.length;
+  const lastIdx = ROWS.length - 1;
+  const lastDone = complete && (millis() - starts[lastIdx]) * SPEED > ROWS[lastIdx].join('').length + 2;
+  if (lastDone) rainTarget = 0;
+
+  rainStep();
+
   scale(scaleF);
-  background(COL.black);
+  background(0);
+  image(rain, 0, 0);
   noStroke();
 
-  // Barra de título
-  fill(COL.teal); rect(0, 0, W, 72, 18, 18, 0, 0);
-  [['#E0453A', 44], ['#F2C230', 78], ['#2FA866', 112]].forEach(([c, x]) => { fill(c); circle(x, 36, 22); });
-  fill(COL.white); textFont('Barlow Condensed'); textStyle(NORMAL); textSize(36); textAlign(LEFT, CENTER);
-  text(TITULO, 164, 34);
-  textFont('IBM Plex Mono'); textSize(20); fill('#BFE3E8'); textAlign(RIGHT, CENTER);
-  text(HORA, W - 32, 36);
+  // Panel del inventario
+  fill(0, 0, 0, 215); rect(48, 48, 1400, 904);
+  noFill(); stroke(G.dim); strokeWeight(2); rect(48, 48, 1400, 904); noStroke();
 
-  // Hoja del inventario
-  fill(COL.paper); rect(0, 72, 1460, 880);
-  textAlign(LEFT, BASELINE);
-  fill(COL.teal); textFont('IBM Plex Mono'); textSize(18);
-  text('FORMATO ÚNICO DE INVENTARIO DOCUMENTAL', 48, 124);
-  fill(COL.tealDk); textFont('Barlow Condensed'); textStyle(BOLD); textSize(72);
-  text('Expediente: Lala', 44, 204);
-  textStyle(NORMAL);
+  textFont(FONT); textStyle(NORMAL); textAlign(LEFT, BASELINE);
+  fill(G.dim); textSize(16); text(TITULO, 80, 84);
+  fill(G.mid); textSize(18); text('> FORMATO_ÚNICO_DE_INVENTARIO_DOCUMENTAL', 80, 114);
+
+  fill(G.bright); textSize(60); textStyle(BOLD);
+  drawingContext.shadowColor = G.bright; drawingContext.shadowBlur = 18;
+  text('EXPEDIENTE: LALA', 76, 186);
+  drawingContext.shadowBlur = 0; textStyle(NORMAL);
 
   // Encabezado que se escribe solo
   let budget = (millis() - headerStart) * SPEED;
-  textFont('IBM Plex Mono'); textSize(18);
+  textSize(17);
   HEADER.forEach(([k, v], i) => {
-    const y = 132 + i * 30;
-    fill(COL.label); text(typed(k, budget), 940, y); budget -= k.length;
-    fill('#333333'); text(typed(v, budget), 1150, y); budget -= v.length;
+    const y = 104 + i * 28;
+    fill(G.dim); text(typed(k, budget), 900, y); budget -= k.length;
+    fill(G.mid); text(typed(v, budget), 1110, y); budget -= v.length;
   });
-  stroke(COL.teal); strokeWeight(3); line(48, 236, 1412, 236); noStroke();
+  stroke(G.dim); strokeWeight(1); line(80, 212, 1416, 212); noStroke();
 
   // Encabezado de la tabla
-  const X = [48, 128, 278, 902, 1112], WD = [80, 150, 624, 210, 300];
-  fill(COL.teal); rect(48, 260, 1364, 44);
-  fill(COL.white); textFont('IBM Plex Mono'); textSize(16); textAlign(LEFT, CENTER);
-  ['Nº', 'Código', 'Serie / asunto', 'Fechas extremas', 'Observaciones'].forEach((h, i) => text(h, X[i] + 14, 282));
+  const X = [80, 150, 300, 920, 1130], WD = [70, 150, 610, 200, 286];
+  fill(G.bright); textSize(15); textAlign(LEFT, CENTER);
+  ['Nº', 'CÓDIGO', 'SERIE / ASUNTO', 'FECHAS', 'OBSERVACIONES'].forEach((h, i) => text(h, X[i], 250));
+  stroke(G.bright); line(80, 270, 1416, 270); noStroke();
 
   // Filas
-  const y0 = 304, RH = 72;
+  const y0 = 282, RH = 72;
   let cursorPos = null;
   for (let i = 0; i < starts.length; i++) {
     const r = ROWS[i];
-    const last = i === ROWS.length - 1;
+    const last = i === lastIdx;
     const age = millis() - starts[i];
-    const base = color(last ? COL.black : COL.paper);
     const k = constrain(age / 700, 0, 1);
-    fill(last ? base : lerpColor(color(COL.yellow), base, k));
-    rect(48, y0 + i * RH, 1364, RH);
-    stroke(COL.rule); strokeWeight(1); line(48, y0 + (i + 1) * RH, 1412, y0 + (i + 1) * RH); noStroke();
+    if (k < 1) { fill(51, 255, 119, 90 * (1 - k)); rect(80, y0 + i * RH, 1336, RH); }
+    stroke(G.faint); line(80, y0 + (i + 1) * RH, 1416, y0 + (i + 1) * RH); noStroke();
 
     const cells = [String(i + 1).padStart(2, '0'), r[0] || '', r[1] || '', r[2] || '', r[3] || ''];
     let chars = age * SPEED;
     cells.forEach((c, ci) => {
-      const mono = ci !== 2 && ci !== 4;
-      textFont(mono ? 'IBM Plex Mono' : 'Barlow');
-      textSize(mono ? 20 : 23);
-      textAlign(LEFT, TOP); textLeading(27);
-      fill(last ? COL.yellow : COL.ink);
+      textSize(ci === 2 ? 21 : 19); textAlign(LEFT, TOP); textLeading(27);
+      fill(last ? G.white : G.bright);
       const shown = typed(c, chars);
-      text(shown, X[ci] + 14, y0 + i * RH + 12, WD[ci] - 24, RH - 14);
+      text(shown, X[ci], y0 + i * RH + 14, WD[ci] - 16, RH - 14);
       if (chars > 0 && chars < c.length) {
-        cursorPos = { x: X[ci] + 14 + Math.min(textWidth(shown), WD[ci] - 26), y: y0 + i * RH + 12, last };
+        cursorPos = { x: X[ci] + Math.min(textWidth(shown), WD[ci] - 18), y: y0 + i * RH + 14 };
       }
       chars -= c.length;
     });
   }
-  if (cursorPos && frameCount % 40 < 24) {
-    fill(cursorPos.last ? COL.yellow : COL.teal); rect(cursorPos.x + 2, cursorPos.y + 2, 11, 24);
-  }
-  // Cursor que espera en la fila vacía
-  const complete = starts.length === ROWS.length;
-  if (complete) {
-    const i = ROWS.length - 1;
-    const done = (millis() - starts[i]) * SPEED > ROWS[i].join('').length + 2;
-    if (done && frameCount % 60 < 30) { fill(COL.yellow); rect(1382, y0 + i * RH + 24, 11, 24); }
-  }
+  if (cursorPos && frameCount % 40 < 24) { fill(G.bright); rect(cursorPos.x + 2, cursorPos.y + 2, 11, 22); }
+  if (lastDone && frameCount % 60 < 30) { fill(G.white); rect(1400, y0 + lastIdx * RH + 22, 11, 22); }
 
-  // Folios
-  fill(COL.label); textFont('IBM Plex Mono'); textSize(16); textAlign(RIGHT, BASELINE);
-  text('Folios: ' + starts.length + ' / ' + ROWS.length, 1412, 936);
+  // Estado
+  textSize(16); textAlign(LEFT, BASELINE); fill(G.mid);
+  const estado = !starts.length ? '> esperando transferencia_'
+    : lastDone ? '> transferencia completa. 1 registro sin contenido.'
+    : '> transfiriendo registros…';
+  text(estado, 80, 930);
+  textAlign(RIGHT, BASELINE); fill(G.dim);
+  text('folios: ' + starts.length + ' / ' + ROWS.length, 1416, 930);
 
-  // Columna derecha: cámara + cita
-  fill(COL.panel); rect(1460, 72, 460, 1008);
+  // Cámara
   if (camMode === 0) {
-    fill(COL.cam); rect(1484, 96, 412, 300, 16);
-    fill(COL.camInk); textFont('IBM Plex Mono'); textSize(18); textAlign(CENTER, CENTER);
-    text('[CÁMARA EN VIVO]', 1690, 236);
+    fill(0, 0, 0, 215); rect(1480, 48, 392, 300);
+    noFill(); stroke(G.dim); strokeWeight(2); rect(1480, 48, 392, 300); noStroke();
+    fill(G.mid); textSize(17); textAlign(CENTER, CENTER);
+    text('[CÁMARA EN VIVO]', 1676, 188);
+    fill(G.dim); textSize(14); text('C: magenta para chroma', 1676, 220);
   } else if (camMode === 1) {
-    fill('#00FF00'); rect(1484, 96, 412, 300, 16);
+    fill('#FF00FF'); rect(1480, 48, 392, 300);
   }
 
-  fill(COL.yellow); rect(1484, 420, 412, 636, 28);
-  fill(COL.tealDk); textFont('IBM Plex Mono'); textSize(18); textAlign(LEFT, TOP);
-  text('LO QUE DIGO', 1516, 452);
-  textFont('Barlow'); textSize(34); textLeading(42);
-  text(QUOTE_A + (complete ? '\n\n' + QUOTE_B : ''), 1516, 500, 348, 520);
+  // Lo que digo
+  fill(0, 0, 0, 215); rect(1480, 372, 392, 580);
+  noFill(); stroke(G.dim); strokeWeight(2); rect(1480, 372, 392, 580); noStroke();
+  fill(G.dim); textSize(16); textAlign(LEFT, TOP); text('> LO_QUE_DIGO', 1508, 398);
+  textSize(27); textLeading(38);
+  fill(G.bright); text(QUOTE_A, 1508, 440, 340, 220);
+  if (lastDone) { fill(G.white); text(QUOTE_B, 1508, 680, 340, 220); }
 
   // Marquesina
-  fill(COL.black); rect(0, 952, 1460, 128);
-  textFont('Barlow'); textSize(46); textAlign(LEFT, CENTER); fill(COL.white);
+  fill(0, 0, 0, 230); rect(0, 976, W, 104);
+  stroke(G.dim); line(0, 976, W, 976); noStroke();
+  textSize(38); textAlign(LEFT, CENTER); fill(G.bright);
   const mw = textWidth(MARQUEE);
-  marqueeX -= 2.2;
+  marqueeX -= 2.2 * Math.max(rainLevel, 0.25);
   if (marqueeX <= -mw) marqueeX += mw;
-  drawingContext.save();
-  drawingContext.beginPath(); drawingContext.rect(0, 952, 1460, 128); drawingContext.clip();
-  for (let x = marqueeX; x < 1460; x += mw) text(MARQUEE, x + 36, 1014);
-  drawingContext.restore();
+  for (let x = marqueeX; x < W; x += mw) text(MARQUEE, x + 32, 1028);
 
-  if (auto) { fill(COL.yellow); textFont('IBM Plex Mono'); textSize(14); textAlign(RIGHT, CENTER); text('AUTO', 1890, 64); }
+  if (auto) { fill(G.bright); textSize(14); textAlign(RIGHT, TOP); text('AUTO', 1872, 20); }
 }
 
 function keyPressed() {
