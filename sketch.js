@@ -19,7 +19,7 @@ const ROWS = [
   ['LJR-02', 'Formación · Historia, énfasis en Museología y Patrimonio', '2018', 'Dicho por ella'],
   ['LJR-03', 'Formación · Maestría en Patrimonio Cultural Mueble', '2018–2023', 'Dicho por ella'],
   ['LJR-04', 'Formación · Maestría en Humanidades Digitales', '2026 – abierta', 'Expediente abierto'],
-  ['LJR-05', 'Oficio · Gestión y patrimonio documental', '[FECHAS]', 'Dicho por ella'],
+  ['LJR-05', 'Oficio · Gestión y patrimonio documental', '[1989-20xx]', 'Dicho por ella'],
   ['LJR-06', 'Lugar · Bogotá', '—', 'Dicho por ella'],
   ['LJR-07', 'Proyectos · [EDITAR VERSIÓN PÚBLICA]', '2026', 'Dicho por ella'],
   ['LJR-08', 'Lo que no le he dicho', '—', 'Sin registro']
