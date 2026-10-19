@@ -1,5 +1,5 @@
 // =====================================================
-//  EXPEDIENTE: LALA  ·  versión matriz
+//  EXPEDIENTE: Laura Jiménez R.  ·  versión matriz
 //  adentro afuera · Interludio: Martes
 // =====================================================
 //  CONTROLES
